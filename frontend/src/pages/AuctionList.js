@@ -23,7 +23,7 @@ function CountdownCell({ date, status }) {
 }
 
 function StatusBadge({ status }) {
-  const cls = { ACTIVE: "badge-active", CLOSED: "badge-closed", FORCE_CLOSED: "badge-force-closed" };
+  const cls = { ACTIVE: "badge-active", UPCOMING: "badge-upcoming", CLOSED: "badge-closed", FORCE_CLOSED: "badge-force-closed" };
   return <span className={`badge ${cls[status] || ""}`}>{statusMeta[status]?.label || status}</span>;
 }
 

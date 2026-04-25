@@ -100,6 +100,10 @@ export default function CreateRFQ() {
     try {
       const res = await createRFQ({
         ...form,
+        startTime: new Date(form.startTime).toISOString(),
+        bidCloseTime: new Date(form.bidCloseTime).toISOString(),
+        forcedCloseTime: new Date(form.forcedCloseTime).toISOString(),
+        pickupDate: form.pickupDate ? new Date(form.pickupDate).toISOString() : undefined,
         triggerWindow: Number(form.triggerWindow),
         extensionDuration: Number(form.extensionDuration),
       });

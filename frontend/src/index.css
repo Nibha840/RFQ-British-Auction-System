@@ -238,6 +238,7 @@ input, select, textarea { font-family: inherit; }
 .badge-active::before { animation: pulse 1.5s ease-in-out infinite; }
 .badge-closed { color: var(--amber); background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.12); }
 .badge-force-closed { color: var(--red); background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.12); }
+.badge-upcoming { color: var(--purple); background: rgba(167,139,250,0.1); border-color: rgba(167,139,250,0.15); }
 
 /* ── Buttons ───────────────────────────────────────────────────────────────── */
 .btn {

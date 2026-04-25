@@ -10,11 +10,13 @@ export const getStatus = (rfq) => {
   const now = new Date();
   if (isPast(new Date(rfq.forcedCloseTime))) return "FORCE_CLOSED";
   if (isPast(new Date(rfq.bidCloseTime))) return "CLOSED";
+  if (rfq.startTime && now < new Date(rfq.startTime)) return "UPCOMING";
   return "ACTIVE";
 };
 
 export const statusMeta = {
   ACTIVE: { label: "Active", color: "#00e5a0" },
+  UPCOMING: { label: "Upcoming", color: "#a78bfa" },
   CLOSED: { label: "Closed", color: "#f59e0b" },
   FORCE_CLOSED: { label: "Force Closed", color: "#ef4444" },
 };
