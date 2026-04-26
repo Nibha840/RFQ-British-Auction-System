@@ -13,13 +13,15 @@ function StatusBadge({ status }) {
   return <span className={`badge ${cls[status] || ""}`}>{statusMeta[status]?.label || status}</span>;
 }
 
-function CountdownBar({ bidCloseTime, status }) {
-  const { str } = useCountdown(bidCloseTime);
+function CountdownBar({ rfq, status }) {
+  const targetDate = status === "UPCOMING" ? rfq.startTime : rfq.bidCloseTime;
+  const label = status === "UPCOMING" ? "Starts In" : "Time Remaining";
+  const { str } = useCountdown(targetDate);
   return (
     <div className="stat-box">
-      <div className="label">Time Remaining</div>
-      <div className="stat-value" style={{ color: status !== "ACTIVE" ? "var(--red)" : "var(--accent)", fontSize: 26, fontFamily: "var(--font-mono)" }}>
-        {status !== "ACTIVE" ? "—" : str}
+      <div className="label">{label}</div>
+      <div className="stat-value" style={{ color: (status !== "ACTIVE" && status !== "UPCOMING") ? "var(--red)" : status === "UPCOMING" ? "var(--purple)" : "var(--accent)", fontSize: 26, fontFamily: "var(--font-mono)" }}>
+        {(status !== "ACTIVE" && status !== "UPCOMING") ? "—" : str}
       </div>
     </div>
   );
@@ -250,7 +252,14 @@ export default function AuctionDetail() {
   const [rfq, setRfq] = useState(null);
   const [bids, setBids] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [, forceUpdate] = useState(0);
   const addToast = useToast();
+
+  // Re-evaluate status every second so UPCOMING → ACTIVE transition is automatic
+  useEffect(() => {
+    const tid = setInterval(() => forceUpdate((n) => n + 1), 1000);
+    return () => clearInterval(tid);
+  }, []);
 
   const load = useCallback(async () => {
     try {
@@ -303,6 +312,7 @@ export default function AuctionDetail() {
 
   const status = getStatus(rfq);
   const isActive = status === "ACTIVE";
+  const isUpcoming = status === "UPCOMING";
 
   return (
     <main className="page">
@@ -322,13 +332,18 @@ export default function AuctionDetail() {
                 <span className="live-dot" style={{ marginRight: 6 }} />Live
               </span>
             )}
+            {isUpcoming && (
+              <span style={{ fontSize: 12, color: "var(--purple)" }}>
+                🕐 Scheduled
+              </span>
+            )}
           </div>
         </div>
       </div>
 
       {/* Stats */}
       <div className="grid-3 mb-4" style={{ marginBottom: 24 }}>
-        <CountdownBar bidCloseTime={rfq.bidCloseTime} status={status} />
+        <CountdownBar rfq={rfq} status={status} />
         <div className="stat-box">
           <div className="label">Lowest Bid (L1)</div>
           <div className="stat-value accent">{rfq.lowestBid?.price != null ? formatPrice(rfq.lowestBid.price) : "—"}</div>
@@ -353,6 +368,12 @@ export default function AuctionDetail() {
             <div className="label">Forced Close Time</div>
             <div style={{ marginTop: 4, fontWeight: 500, color: "var(--red)", fontFamily: "var(--font-mono)", fontSize: 13 }}>{fmt(rfq.forcedCloseTime)}</div>
           </div>
+          {rfq.startTime && (
+            <div>
+              <div className="label">Start Time</div>
+              <div style={{ marginTop: 4, fontWeight: 500, color: isUpcoming ? "var(--purple)" : "var(--text-muted)", fontFamily: "var(--font-mono)", fontSize: 13 }}>{fmt(rfq.startTime)}</div>
+            </div>
+          )}
           {rfq.pickupDate && (
             <div>
               <div className="label">Pickup / Service Date</div>
@@ -397,6 +418,13 @@ export default function AuctionDetail() {
         <div>
           {isActive ? (
             <BidForm rfqId={id} onBidPlaced={load} />
+          ) : isUpcoming ? (
+            <div className="card">
+              <div className="section-title">Auction Not Started</div>
+              <div className="text-muted" style={{ fontSize: 13 }}>
+                This auction is scheduled and hasn't started yet. Bidding will open at <strong style={{ color: "var(--purple)" }}>{fmt(rfq.startTime)}</strong>.
+              </div>
+            </div>
           ) : (
             <div className="card">
               <div className="section-title">Bidding Closed</div>

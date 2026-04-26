@@ -70,6 +70,7 @@ const listRFQs = async (req, res, next) => {
       let status;
       if (now >= new Date(rfq.forcedCloseTime)) status = "FORCE_CLOSED";
       else if (now >= new Date(rfq.bidCloseTime)) status = "CLOSED";
+      else if (rfq.startTime && now < new Date(rfq.startTime)) status = "UPCOMING";
       else status = "ACTIVE";
       return { ...rfq, status };
     });
@@ -94,6 +95,7 @@ const getRFQ = async (req, res, next) => {
     let status;
     if (now >= new Date(rfq.forcedCloseTime)) status = "FORCE_CLOSED";
     else if (now >= new Date(rfq.bidCloseTime)) status = "CLOSED";
+    else if (rfq.startTime && now < new Date(rfq.startTime)) status = "UPCOMING";
     else status = "ACTIVE";
 
     return res.json({ success: true, data: { ...rfq, status, bids: rankedBids } });

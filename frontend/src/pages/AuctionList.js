@@ -12,13 +12,16 @@ const TRIGGER_LABELS = {
   L1_RANK_CHANGE: "L1 Change",
 };
 
-function CountdownCell({ date, status }) {
-  const { str, expired } = useCountdown(date);
-  if (status !== "ACTIVE") return <span className="text-muted">—</span>;
+function CountdownCell({ rfq, status }) {
+  const targetDate = status === "UPCOMING" ? rfq.startTime : rfq.bidCloseTime;
+  const { str, expired } = useCountdown(targetDate);
+  if (status !== "ACTIVE" && status !== "UPCOMING") return <span className="text-muted">—</span>;
   return (
-    <span style={{ color: expired ? "var(--red)" : "var(--accent)", fontWeight: 600, fontFamily: "var(--font-mono)" }}>
-      {str}
-    </span>
+    <div>
+      <span style={{ color: expired ? "var(--red)" : status === "UPCOMING" ? "var(--purple)" : "var(--accent)", fontWeight: 600, fontFamily: "var(--font-mono)" }}>
+        {status === "UPCOMING" ? `Starts in ${str}` : str}
+      </span>
+    </div>
   );
 }
 
@@ -29,7 +32,14 @@ function StatusBadge({ status }) {
 
 function RFQRow({ rfq: initial }) {
   const [rfq, setRfq] = useState(initial);
+  const [, forceUpdate] = useState(0);
   const status = getStatus(rfq);
+
+  // Re-evaluate status every second so UPCOMING → ACTIVE transition is automatic
+  useEffect(() => {
+    const id = setInterval(() => forceUpdate((n) => n + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     const handler = (data) => {
@@ -70,8 +80,10 @@ function RFQRow({ rfq: initial }) {
         )}
       </td>
       <td>
-        <CountdownCell date={rfq.bidCloseTime} status={status} />
-        <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 3 }}>{fmt(rfq.bidCloseTime)}</div>
+        <CountdownCell rfq={rfq} status={status} />
+        <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 3 }}>
+          {status === "UPCOMING" ? `Start: ${fmt(rfq.startTime)}` : fmt(rfq.bidCloseTime)}
+        </div>
       </td>
       <td>
         <span className="text-muted" style={{ fontSize: 12 }}>{fmt(rfq.forcedCloseTime)}</span>
@@ -93,8 +105,8 @@ function RFQRow({ rfq: initial }) {
 
 function DashboardStats({ rfqs }) {
   const active = rfqs.filter((r) => getStatus(r) === "ACTIVE").length;
-  const closed = rfqs.filter((r) => getStatus(r) !== "ACTIVE").length;
-  const totalBids = rfqs.reduce((sum, r) => sum + (r.bids?.length || 0), 0);
+  const upcoming = rfqs.filter((r) => getStatus(r) === "UPCOMING").length;
+  const closed = rfqs.filter((r) => ["CLOSED", "FORCE_CLOSED"].includes(getStatus(r))).length;
   const lowestBid = rfqs.reduce((min, r) => {
     if (r.lowestBid?.price != null && (min === null || r.lowestBid.price < min)) return r.lowestBid.price;
     return min;
@@ -103,8 +115,8 @@ function DashboardStats({ rfqs }) {
   const stats = [
     { icon: "📋", label: "Total RFQs", value: rfqs.length, color: "var(--text)", bg: "rgba(96,165,250,0.1)" },
     { icon: "⚡", label: "Active", value: active, color: "var(--accent)", bg: "var(--accent-dim)" },
+    { icon: "🕐", label: "Upcoming", value: upcoming, color: "var(--purple)", bg: "rgba(167,139,250,0.1)" },
     { icon: "🔒", label: "Closed", value: closed, color: "var(--amber)", bg: "rgba(245,158,11,0.1)" },
-    { icon: "💰", label: "Best L1", value: lowestBid != null ? formatPrice(lowestBid) : "—", color: "var(--accent)", bg: "var(--accent-dim)" },
   ];
 
   return (
@@ -147,7 +159,8 @@ export default function AuctionList() {
   }, [load, addToast]);
 
   const active = rfqs.filter((r) => getStatus(r) === "ACTIVE").length;
-  const closed = rfqs.filter((r) => getStatus(r) !== "ACTIVE").length;
+  const upcoming = rfqs.filter((r) => getStatus(r) === "UPCOMING").length;
+  const closed = rfqs.filter((r) => ["CLOSED", "FORCE_CLOSED"].includes(getStatus(r))).length;
 
   return (
     <main className="page">
@@ -157,7 +170,7 @@ export default function AuctionList() {
           <div className="flex gap-3" style={{ marginTop: -12, marginBottom: 24 }}>
             <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
               <span className="live-dot" style={{ marginRight: 6 }} />
-              {active} active &nbsp;·&nbsp; {closed} closed
+              {active} active &nbsp;·&nbsp; {upcoming} upcoming &nbsp;·&nbsp; {closed} closed
             </span>
           </div>
         </div>

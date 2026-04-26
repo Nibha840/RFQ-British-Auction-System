@@ -75,7 +75,7 @@ const RFQSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["ACTIVE", "CLOSED", "FORCE_CLOSED"],
+      enum: ["UPCOMING", "ACTIVE", "CLOSED", "FORCE_CLOSED"],
       default: "ACTIVE",
     },
 
@@ -104,6 +104,7 @@ RFQSchema.methods.computeStatus = function () {
   const now = new Date();
   if (now >= this.forcedCloseTime) return "FORCE_CLOSED";
   if (now >= this.bidCloseTime) return "CLOSED";
+  if (this.startTime && now < this.startTime) return "UPCOMING";
   return "ACTIVE";
 };
 
